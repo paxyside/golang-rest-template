@@ -12,10 +12,6 @@
 # Go modules
 /vendor/
 
-# Go workspace files
-/go.sum
-/go.mod
-
 # Go Test Coverage output
 *.coverprofile
 
