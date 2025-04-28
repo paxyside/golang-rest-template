@@ -1,7 +1,6 @@
 # My Go Microservice Template
 
 [![Use this template](https://img.shields.io/badge/-Use%20this%20template-brightgreen?style=for-the-badge)](https://github.com/paxyside/golang-rest-template/generate)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/paxyside/golang-rest-template)
 
 A basic Go microservice template designed for rapid development:
 - REST API with Gin
