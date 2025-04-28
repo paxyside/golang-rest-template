@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - database
+    container_name: "server"
+    ports:
+      - "8008:8008"
+    networks:
+      project_network:
+    restart: unless-stopped
+    volumes:
+      - ./migrations:./app/migrations/
+      - ./docs/swagger.json:./app/docs/swagger.json
+      - ./config.yaml:./app/config.yaml
+    environment:
+      - DB_URI=${DB_URI}
+      - AMQP_URI=${AMQP_URI}
+
+  database:
+    image: postgres:17.4-alpine
+    container_name: "database"
+    ports:
+      - "9432:5432"
+    environment:
+      - POSTGRES_USER=${PG_SUPERUSER_USER:-postgres}
+      - POSTGRES_PASSWORD=${PG_SUPERUSER_PASSWORD:-pass}
+      - POSTGRES_DB=${PG_SUPERUSER_DB:-postgres}
+    networks:
+      project_network:
+    volumes:
+      - project_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U ${PG_SUPERUSER_USER:-postgres}
+      interval: 30s
+      timeout: 3s
+      retries: 2
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    container_name: "rabbitmq"
+    ports:
+      - "5672:5672"  # RabbitMQ protocol
+      - "15672:15672" # RabbitMQ management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-guest}
+    networks:
+      project_network:
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: "prometheus"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    networks:
+      - project_network
+
+networks:
+  project_network:
+    external: true
+
+volumes:
+  project_volume:

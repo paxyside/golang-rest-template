@@ -1,0 +1,52 @@
+# Go binaries
+/bin/
+/obj/
+
+# Go build artifacts
+*.exe
+*.out
+*.test
+*.swp
+*.tmp
+
+# Go modules
+/vendor/
+
+# Go workspace files
+/go.sum
+/go.mod
+
+# Go Test Coverage output
+*.coverprofile
+
+# IDE and Editor settings
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# GolangCI-lint cache
+.golangci-lint-cache/
+
+# GoLand specific
+*.go.*
+
+# air (Go auto-reloading)
+.air/
+
+# Debug and runtime
+*.log
+*.pid
+
+# Backup and swap files
+*~
+*.bak
+
+# Environment files
+*.env
+*config.yaml

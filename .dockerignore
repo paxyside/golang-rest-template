@@ -1,0 +1,16 @@
+/cicd/
+readme.*
+README.*
+docker-compose.*
+docker/Dockerfile
+.dockerignore
+.editorconfig
+.git
+.gitignore
+.gitmodules
+.github
+*.github
+.gitlab-ci.*
+.idea
+.vim*
+.vscode*

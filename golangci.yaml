@@ -1,0 +1,78 @@
+run:
+  timeout: 5m
+  tests: true
+  concurrency: 4
+  skip-dirs:
+    - "vendor"
+    - "migrations"
+    - "tmp"
+  skip-files:
+    - ".*\\.gen\\.go"
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+
+linters-settings:
+  govet:
+    check-shadowing: true
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gci:
+    skip-generated: true
+    local-prefixes: github.com/my_project
+    sections:
+      - Standard
+      - Default
+      - Prefix(github.com/my_project)
+
+  golint:
+    min-confidence: 0.8
+
+  errcheck:
+    check-type-assertions: true
+
+  revive:
+    ignore-generated-header: true
+    severity: warning
+
+  nolintlint:
+    allow-unused: false
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - revive
+    - gosimple
+    - unused
+    - gocritic
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - gci
+    - deadcode
+    - typecheck
+    - nolintlint
+    - asciicheck
+    - dupl
+    - dogsled
+    - structcheck
+    - varcheck
+    - interfacer
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
