@@ -1,0 +1,84 @@
+version: "2"
+run:
+  concurrency: 4
+  go: "1.23"
+  tests: false
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+linters:
+  default: none
+  enable:
+    - contextcheck
+    - copyloopvar
+    - dogsled
+    - durationcheck
+    - err113
+    - errcheck
+    - errorlint
+    - forcetypeassert
+    - funlen
+    - goconst
+    - govet
+    - importas
+    - ineffassign
+    - lll
+    - makezero
+    - misspell
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - thelper
+    - unconvert
+    - unused
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl
+  settings:
+    errcheck:
+      check-type-assertions: true
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocyclo:
+      min-complexity: 15
+    nolintlint:
+      allow-unused: false
+    revive:
+      severity: warning
+  exclusions:
+    generated: lax
+    paths:
+      - .*\.gen\.go
+      - vendor
+      - migrations
+      - tmp
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  settings:
+    gci:
+      sections:
+        - Standard
+        - Default
+        - Prefix(github.com/my_project)
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

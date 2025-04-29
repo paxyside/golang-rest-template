@@ -13,10 +13,10 @@ all: clear lint pack swagger
 prepare: lint-fix pack swagger tests
 
 lint:
-	docker run -t --rm -v $(PWD):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout=10m
+	docker run -t --rm -v $(PWD):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --timeout 5m
 
 lint-fix:
-	docker run -t --rm -v $(PWD):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --fix --timeout=10m
+	docker run -t --rm -v $(PWD):/app -w /app golangci/golangci-lint:v2.1.5 golangci-lint run --fix --timeout 5m
 
 pack:
 	go build -o $(app_name) $(main_path)

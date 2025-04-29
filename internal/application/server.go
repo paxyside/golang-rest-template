@@ -2,30 +2,40 @@ package application
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-	ginprom "github.com/zsais/go-gin-prometheus"
-	"project_reference/infrastructure/database"
-	"project_reference/infrastructure/rabbit"
-	"project_reference/internal/controller"
+	"emperror.dev/errors"
+	"fmt"
+	"github.com/spf13/viper"
+	"log/slog"
+	"net/http"
+	"time"
 )
 
-func setupServer(ctx context.Context, db *database.DB, mq *rabbit.RabbitMQ) (*gin.Engine, error) {
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(controller.LoggerMiddleware())
+func setupServer(ctx context.Context, infra *Infra) (*http.Server, error) {
+	l := slog.Default()
 
-	prom := ginprom.NewPrometheus("gin")
-	prom.Use(r)
+	engine, err := setupDependencies(ctx, infra)
+	if err != nil {
+		return nil, errors.Wrap(err, "setupServer")
+	}
 
-	r.GET("/api/ping", controller.Ping)
-	r.GET("/api/docs/spec", func(c *gin.Context) {
-		c.File("./docs/swagger.json")
-	})
-	r.GET("/api/docs/swagger/*any",
-		ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("/api/docs/spec")),
-	)
+	host := viper.GetString("server.host")
+	port := viper.GetString("server.port")
+	serverAddr := fmt.Sprintf("%s:%s", host, port)
 
-	return r, nil
+	srv := &http.Server{
+		Addr:         serverAddr,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		Handler:      engine,
+	}
+
+	l.Info("starting HTTP server", slog.String("host", host), slog.String("port", port))
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			l.Error("http server error", slog.String("address", serverAddr), slog.Any("error", err))
+		}
+	}()
+
+	return srv, nil
 }

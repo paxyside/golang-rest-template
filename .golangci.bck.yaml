@@ -1,0 +1,86 @@
+run:
+  timeout: 5m
+  tests: false
+  go: '1.23'
+  concurrency: 4
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gci:
+    skip-generated: true
+    sections:
+      - Standard
+      - Default
+      - Prefix(github.com/my_project)
+
+  errcheck:
+    check-type-assertions: true
+
+  revive:
+    ignore-generated-header: true
+    severity: warning
+
+  nolintlint:
+    allow-unused: false
+
+linters:
+  disable-all: true
+  enable:
+    - copyloopvar
+    - err113
+    - errcheck
+    - goconst
+    - gosimple
+    - govet
+    - shadow
+    - errorlint
+    - unused
+    - ineffassign
+    - staticcheck
+    - contextcheck
+    - noctx
+    - dogsled
+    - durationcheck
+    - forcetypeassert
+    - funlen
+    - wrapcheck
+    - importas
+    - lll
+    - makezero
+    - misspell
+    - nilerr
+    - nilnil
+    - nolintlint
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - tenv
+    - thelper
+    - unconvert
+    - wastedassign
+    - whitespace
+    - wsl
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-files:
+    - ".*\\.gen\\.go"
+  exclude-dirs:
+    - "vendor"
+    - "migrations"
+    - "tmp"

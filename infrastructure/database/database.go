@@ -19,15 +19,13 @@ type DB struct {
 }
 
 // Close gracefully shuts down the database connection.
-func (d *DB) Close() error {
+func (d *DB) Close() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if d.Conn != nil {
 		d.Conn.Close()
 	}
-
-	return nil
 }
 
 // Init initializes the database connection and applies migrations.
