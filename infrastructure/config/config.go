@@ -6,20 +6,27 @@ import (
 	"github.com/spf13/viper"
 )
 
-func LoadConfig() error {
+type Config struct {
+	DatabaseUri string `mapstructure:"DB_URI"`
+	RabbitMQUri string `mapstructure:"AMQP_URI"`
+}
+
+func LoadConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		return errors.Wrap(err, "godotenv.Load")
+		return nil, errors.Wrap(err, "godotenv.Load")
 	}
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return errors.Wrap(err, "viper.ReadInConfig")
-	}
-
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("")
 
-	return nil
+	_ = viper.ReadInConfig()
+
+	var cfg Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, errors.Wrap(err, "viper.Unmarshal")
+	}
+
+	return &cfg, nil
 }
