@@ -6,107 +6,160 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log/slog"
-	"runtime"
 	"sync"
 	"time"
 )
 
+type DBExecutor interface {
+	Query(ctx context.Context, query string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, query string, args ...any) pgx.Row
+	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	Close()
+}
+
 type DB struct {
-	Conn *pgxpool.Pool
+	conn *pgxpool.Pool
 	mu   sync.Mutex
 }
 
-// Close gracefully shuts down the database connection.
-func (d *DB) Close() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.Conn != nil {
-		d.Conn.Close()
-	}
-}
-
-// Init initializes the database connection and applies migrations.
-func Init(DBURI string) (*DB, error) {
-	// Apply migrations
-	if err := applyMigrations(DBURI); err != nil {
+func Init(ctx context.Context, dbURI string) (*DB, error) {
+	if err := applyMigrations(dbURI); err != nil {
 		return nil, errors.Wrap(err, "applyMigrations")
 	}
 
-	// Initialize database connection
-	var db DB
-
-	config, err := pgxpool.ParseConfig(DBURI)
+	cfg, err := pgxpool.ParseConfig(dbURI)
 	if err != nil {
 		return nil, errors.Wrap(err, "pgxpool.ParseConfig")
 	}
 
-	config.MaxConns = int32(runtime.NumCPU())
-
-	db.Conn, err = pgxpool.NewWithConfig(context.Background(), config)
+	conn, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "pgxpool.NewWithConfig")
 	}
 
-	// Test the connection
-	if err = testConnection(db.Conn); err != nil {
+	if err := testConnection(ctx, conn); err != nil {
+		conn.Close()
 		return nil, errors.Wrap(err, "testConnection")
 	}
 
-	// Start a connection worker for automatic reconnection
-	go connectionWorker(&db, DBURI)
+	db := &DB{conn: conn}
 
-	return &db, nil
+	go db.connectionWorker(ctx, dbURI)
+
+	return db, nil
 }
 
-// testConnection pings the database to ensure the connection is alive.
-func testConnection(db *pgxpool.Pool) error {
-	if err := db.Ping(context.Background()); err != nil {
-		return errors.Wrap(err, "db.Ping")
+func (d *DB) Close() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.conn != nil {
+		d.conn.Close()
+		d.conn = nil
 	}
-
-	return nil
 }
 
-// connectionWorker periodically checks the database connection and reconnects if necessary.
-func connectionWorker(db *DB, dbURI string) {
+func (d *DB) connectionWorker(ctx context.Context, dbURI string) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		if err := testConnection(db.Conn); err != nil {
-			slog.Error("failed to ping database", slog.Any("error", err))
-			db.mu.Lock()
-
-			newConn, err := pgxpool.New(context.Background(), dbURI)
-			if err != nil {
-				slog.Error("failed to create new database connection", slog.Any("error", err))
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := testConnection(ctx, d.conn); err != nil {
+				slog.Error("db ping failed", slog.Any("error", err))
+				d.reconnect(ctx, dbURI)
 			}
-
-			db.Conn.Close()
-			db.Conn = newConn
-			db.mu.Unlock()
-			slog.Info("reconnected to database")
 		}
 	}
 }
 
-// applyMigrations runs all pending database migrations.
-func applyMigrations(DBURI string) error {
-	m, err := migrate.New("file://migrations/", DBURI)
+func (d *DB) reconnect(ctx context.Context, dbURI string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	newConn, err := pgxpool.New(ctx, dbURI)
+	if err != nil {
+		slog.Error("failed to reconnect db", slog.Any("error", err))
+		return
+	}
+
+	if newConn == nil {
+		slog.Warn("new db connection is nil")
+		return
+	}
+
+	if err := testConnection(ctx, newConn); err != nil {
+		slog.Error("new db ping failed", slog.Any("error", err))
+		newConn.Close()
+		return
+	}
+
+	if d.conn != nil {
+		d.conn.Close()
+	}
+
+	d.conn = newConn
+
+	slog.Info("successfully reconnected to database")
+}
+
+func testConnection(ctx context.Context, db *pgxpool.Pool) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	if err := db.Ping(ctx); err != nil {
+		return errors.Wrap(err, "db.Ping")
+	}
+	return nil
+}
+
+func applyMigrations(dbURI string) error {
+	m, err := migrate.New("file://migrations/", dbURI)
 	if err != nil {
 		return errors.Wrap(err, "migrate.New")
 	}
 
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	defer func() {
+		if sourceErr, dbErr := m.Close(); sourceErr != nil || dbErr != nil {
+			slog.Error("failed to close migrate instance",
+				slog.Any("sourceErr", sourceErr),
+				slog.Any("dbErr", dbErr),
+			)
+		}
+	}()
+
+	err = m.Up()
+	switch {
+	case err == nil:
+		slog.Info("migrations applied successfully")
+	case errors.Is(err, migrate.ErrNoChange):
+		slog.Info("no migrations to apply")
+	default:
 		return errors.Wrap(err, "m.Up")
 	}
 
-	if sourceErr, dbErr := m.Close(); sourceErr != nil || dbErr != nil {
-		return errors.Errorf("failed to close migrate instance: sourceErr: %v, dbErr: %v", sourceErr, dbErr)
-	}
-
 	return nil
+}
+func (d *DB) Query(ctx context.Context, query string, args ...any) (pgx.Rows, error) {
+	return d.conn.Query(ctx, query, args...)
+}
+
+func (d *DB) QueryRow(ctx context.Context, query string, args ...any) pgx.Row {
+	return d.conn.QueryRow(ctx, query, args...)
+}
+
+func (d *DB) Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error) {
+	return d.conn.Exec(ctx, query, args...)
+}
+
+func (d *DB) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return d.conn.Begin(ctx)
 }
