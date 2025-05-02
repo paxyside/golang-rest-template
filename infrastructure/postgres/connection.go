@@ -2,10 +2,11 @@ package postgres
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"log/slog"
 	"sync"
 	"time"
+
+	"emperror.dev/errors"
 
 	"golang-template/internal/domain/logger"
 

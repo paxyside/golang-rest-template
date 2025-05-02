@@ -2,11 +2,12 @@ package redis
 
 import (
 	"context"
-	"github.com/spf13/viper"
 	"golang-template/internal/domain/logger"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"emperror.dev/errors"
 	"github.com/redis/go-redis/v9"
@@ -44,7 +45,6 @@ func (r *Redis) healthChecker(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-
 		select {
 		case <-ctx.Done():
 			return
@@ -71,7 +71,7 @@ func (r *Redis) connect(ctx context.Context) error {
 
 	newClient := redis.NewClient(newOpt)
 
-	if err := newClient.Ping(ctx).Err(); err != nil {
+	if err = newClient.Ping(ctx).Err(); err != nil {
 		return errors.Wrap(err, "newClient.Ping")
 	}
 

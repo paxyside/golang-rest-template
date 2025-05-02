@@ -2,13 +2,22 @@ package postgres
 
 import (
 	"context"
+	"log/slog"
+
 	"emperror.dev/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"log/slog"
 )
 
-func (db *DB) Query(ctx context.Context, query string, args ...any) (pgx.Rows, error) {
+type RowsWrapper struct {
+	pgx.Rows
+}
+
+func (rw *RowsWrapper) Close() {
+	rw.Rows.Close()
+}
+
+func (db *DB) Query(ctx context.Context, query string, args ...any) (*RowsWrapper, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -16,7 +25,12 @@ func (db *DB) Query(ctx context.Context, query string, args ...any) (pgx.Rows, e
 		return nil, errors.Wrap(err, "db.Ping")
 	}
 
-	return db.pool.Query(ctx, query, args...)
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.pool.Query")
+	}
+
+	return &RowsWrapper{rows}, nil
 }
 
 func (db *DB) QueryRow(ctx context.Context, query string, args ...any) pgx.Row {

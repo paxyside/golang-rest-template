@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+
 	"github.com/rabbitmq/amqp091-go"
 )
 

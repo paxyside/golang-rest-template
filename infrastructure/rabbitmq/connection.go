@@ -2,13 +2,14 @@ package rabbitmq
 
 import (
 	"context"
-	"emperror.dev/errors"
-	"github.com/rabbitmq/amqp091-go"
-	"github.com/spf13/viper"
 	"golang-template/internal/domain/logger"
 	"log/slog"
 	"sync"
 	"time"
+
+	"emperror.dev/errors"
+	"github.com/rabbitmq/amqp091-go"
+	"github.com/spf13/viper"
 )
 
 type RabbitMQ struct {

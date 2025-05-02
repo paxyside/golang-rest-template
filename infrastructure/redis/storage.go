@@ -2,8 +2,9 @@ package redis
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"time"
+
+	"emperror.dev/errors"
 )
 
 func (r *Redis) Set(

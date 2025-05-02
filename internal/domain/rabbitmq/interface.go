@@ -1,8 +1,9 @@
 package rabbitmq
 
 import (
-	"github.com/rabbitmq/amqp091-go"
 	"golang-template/infrastructure/rabbitmq"
+
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type Queue interface {
