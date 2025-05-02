@@ -1,4 +1,15 @@
-server:
-  host: "0.0.0.0"
-  port: "8008"
-  gin_mode: "debug"
+app:
+  server:
+    host: "0.0.0.0"
+    port: "8008"
+    gin_mode: "debug"
+  db:
+    migration_path: "file://migrations/"
+    healthcheck_interval: 5s
+    connection_timeout: 5s
+  rbmq:
+    connection_timeout: 5s
+    healthcheck_interval: 5s
+  redis:
+    connection_timeout: 5s
+    healthcheck_interval: 5s

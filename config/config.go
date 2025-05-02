@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	DatabaseUri string `mapstructure:"DB_URI"`
-	RabbitMQUri string `mapstructure:"AMQP_URI"`
+	DatabaseURI string `mapstructure:"DB_URI"`
+	RabbitMQURI string `mapstructure:"AMQP_URI"`
 }
 
 func LoadConfig() (*Config, error) {
